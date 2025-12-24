@@ -61,3 +61,4 @@ cover/
 # Project specific
 system_state.json
 *.log
+prd.md
