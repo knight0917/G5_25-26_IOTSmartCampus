@@ -1,0 +1,34 @@
+{
+    "project_name": "IoT Smart Campus",
+    "version": "1.0",
+    "broker": {
+        "address": "test.mosquitto.org",
+        "port": 1883
+    },
+    "services": {
+        "catalog": {
+            "ip": "127.0.0.1",
+            "port": 8080,
+            "last_update": "2024-12-19"
+        }
+    },
+    "rooms": [
+        {
+            "room_id": "Classroom_101",
+            "devices": {
+                "sensor_topic": "polito/iot/class101/sensor",
+                "actuator_topic": "polito/iot/class101/actuator"
+            },
+            "strategies": {
+                "target_temp": 24.0,
+                "light_threshold": 400
+            }
+        }
+    ],
+    "users": [
+        {
+            "name": "Kiyan",
+            "role": "admin"
+        }
+    ]
+}
