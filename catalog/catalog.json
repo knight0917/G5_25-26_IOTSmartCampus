@@ -1,0 +1,71 @@
+{
+  "rooms": [
+    {
+      "room_id": "room_101",
+      "name": "Physics Lab",
+      "mqtt_sensor_topic": "campus/room_101/sensors",
+      "mqtt_actuator_topic": "campus/room_101/actuators",
+      "thingspeak_channel_id": "3212090",
+      "thingspeak_write_key": "938MTQ6J64M1U904",
+      "thresholds": {
+        "co2_warning": 1000,
+        "co2_critical": 1500
+      },
+      "schedule": [
+        {
+          "day": "Monday",
+          "start_time": "09:00",
+          "end_time": "11:00"
+        },
+        {
+          "day": "Wednesday",
+          "start_time": "14:00",
+          "end_time": "16:00"
+        }
+      ]
+    },
+    {
+      "room_id": "room_102",
+      "name": "Lecture Hall",
+      "mqtt_sensor_topic": "campus/room_102/sensors",
+      "mqtt_actuator_topic": "campus/room_102/actuators",
+      "thingspeak_channel_id": "3212091",
+      "thingspeak_write_key": "1K8ECU2BFYZU0DW9",
+      "thresholds": {
+        "co2_warning": 800,
+        "co2_critical": 1200
+      },
+      "schedule": [
+        {
+          "day": "Tuesday",
+          "start_time": "10:00",
+          "end_time": "12:00"
+        },
+        {
+          "day": "Thursday",
+          "start_time": "10:00",
+          "end_time": "12:00"
+        }
+      ]
+    },
+    {
+      "room_id": "room_103",
+      "name": "Smart Staff Office",
+      "mqtt_sensor_topic": "campus/room_103/sensors",
+      "mqtt_actuator_topic": "campus/room_103/actuators",
+      "thingspeak_channel_id": "3212092",
+      "thingspeak_write_key": "68NNZZAI8V7SK0VU",
+      "thresholds": {
+        "co2_warning": 900,
+        "co2_critical": 1300
+      },
+      "schedule": [
+        {
+          "day": "Friday",
+          "start_time": "09:00",
+          "end_time": "17:00"
+        }
+      ]
+    }
+  ]
+}
