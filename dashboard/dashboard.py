@@ -7,6 +7,21 @@ st.set_page_config(page_title="IoT Smart Campus", page_icon="🏫", layout="wide
 
 st.title("🏫 Smart Campus Management Dashboard")
 
+# --- CSS to Hide Anchor Links ---
+st.markdown("""
+    <style>
+    /* Hide the link button */
+    .stApp a.anchor-link { display: none; }
+    /* Hide the link icon that appears on hover in newer Streamlit versions */
+    [data-testid="stHeaderActionElements"] { display: none; }
+    /* Target the specific class for header anchors if the above don't work */
+    .css-15zrgzn {display: none}
+    .css-1629p8f h1 a, .css-1629p8f h2 a, .css-1629p8f h3 a {display: none}
+    /* Most generic way to hide the chain icon next to headers */
+    h1 > a, h2 > a, h3 > a { display: none !important; }
+    </style>
+    """, unsafe_allow_html=True)
+
 # --- Quick Links ---
 with st.sidebar:
     st.header("🔗 Quick Links")
@@ -22,11 +37,26 @@ def load_state():
     except:
         return {}
 
+def load_catalog_metadata():
+    """Load static metadata like ThingSpeak IDs from catalog."""
+    try:
+        with open("catalog/catalog.json", "r") as f:
+            data = json.load(f)
+            # Create a map: room_id -> thingspeak_channel_id
+            return {room["room_id"]: room.get("thingspeak_channel_id") for room in data.get("rooms", [])}
+    except Exception as e:
+        # st.error(f"Error loading catalog: {e}")
+        return {}
+
 # Auto-refresh logic
 placeholder = st.empty()
 
 while True:
     state = load_state()
+    
+    # Load catalog metadata once (or periodically if needed)
+    if 'ts_map' not in st.session_state:
+        st.session_state.ts_map = load_catalog_metadata()
     
     with placeholder.container():
         st.write(f"Last Refreshed: {time.strftime('%H:%M:%S')}")
@@ -81,6 +111,21 @@ while True:
                     st.markdown(f"**Heating:** {heat_icon} {data['heating']}")
                     
                     st.text(f"Updated: {data['last_update']}")
+                    
+                    # --- ThingSpeak Link ---
+                    ts_id = getattr(st.session_state, 'ts_map', {}).get(room_id)
+                    if ts_id:
+                        st.markdown(f"📈 [View on ThingSpeak](https://thingspeak.com/channels/{ts_id})")
+                        
+                        with st.expander("📉 View Live Charts"):
+                            # Embed ThingSpeak Charts
+                            # Field 1: Temperature, Field 2: Humidity
+                            st.write("**Temperature**")
+                            st.components.v1.iframe(f"https://thingspeak.com/channels/{ts_id}/charts/1?bgcolor=%23ffffff&color=%23d62020&dynamic=true&results=60&type=line&update=15", height=260)
+                            
+                            st.write("**Humidity**")
+                            st.components.v1.iframe(f"https://thingspeak.com/channels/{ts_id}/charts/2?bgcolor=%23ffffff&color=%23d62020&dynamic=true&results=60&type=line&update=15", height=260)
+                    
                     st.divider()
 
     time.sleep(1) # Refresh every second
