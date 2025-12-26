@@ -62,3 +62,4 @@ cover/
 system_state.json
 *.log
 prd.md
+secrets.json

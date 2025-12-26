@@ -4,13 +4,35 @@ import requests # Used for making HTTP requests (Catalog, Telegram API)
 import time # Used for delays and rate limiting
 from datetime import datetime # Used for timestamp handling
 
+import os
+
 # Configuration
 BROKER = "localhost"
 PORT = 1883
 CATALOG_URL = "http://localhost:8080"
 
-TELEGRAM_BOT_TOKEN = "8360412211:AAGNAo6WbjY4GxeMXi2jOK30rTgDYD5gNWE"
-CHAT_ID = "7905772261"
+# Load Secrets --already loaded in secret.json
+TELEGRAM_BOT_TOKEN = ""
+CHAT_ID = ""
+
+try:
+    # Try looking in the current directory first
+    if os.path.exists("secrets.json"):
+        with open("secrets.json", "r") as f:
+            secrets = json.load(f)
+    # Try looking in the script's directory
+    else:
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        secrets_path = os.path.join(script_dir, "secrets.json")
+        with open(secrets_path, "r") as f:
+            secrets = json.load(f)
+            
+    TELEGRAM_BOT_TOKEN = secrets.get("TELEGRAM_BOT_TOKEN", "")
+    CHAT_ID = secrets.get("CHAT_ID", "")
+except Exception as e:
+    print(f"Error loading secrets.json: {e}")
+    TELEGRAM_BOT_TOKEN = "YOUR_BOT_TOKEN"
+    CHAT_ID = "YOUR_CHAT_ID"
 
 class NotificationService:
     def __init__(self):
