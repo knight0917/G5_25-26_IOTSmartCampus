@@ -28,11 +28,11 @@ if %errorlevel% neq 0 (
 :launch_services
 echo.
 echo [1/5] Starting Catalog Service...
-start "Catalog Service" cmd /k "call venv\Scripts\activate & uvicorn catalog.catalog_service:app --reload --port 8000"
+start "Catalog Service" cmd /k "call venv\Scripts\activate & python catalog/catalog_service.py"
 timeout /t 2 /nobreak >nul
 
 echo [2/5] Starting Smart Controller...
-start "Smart Controller" cmd /k "call venv\Scripts\activate & uvicorn controller.controller_service:app --reload --port 8001"
+start "Smart Controller" cmd /k "call venv\Scripts\activate & python controller/controller_service.py"
 
 echo [3/5] Starting Dashboard...
 start "Dashboard" cmd /k "call venv\Scripts\activate & python -m streamlit run dashboard/dashboard.py"

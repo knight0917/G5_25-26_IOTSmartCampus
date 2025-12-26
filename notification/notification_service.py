@@ -7,7 +7,7 @@ from datetime import datetime # Used for timestamp handling
 # Configuration
 BROKER = "localhost"
 PORT = 1883
-CATALOG_URL = "http://localhost:8000"
+CATALOG_URL = "http://localhost:8080"
 
 TELEGRAM_BOT_TOKEN = "8360412211:AAGNAo6WbjY4GxeMXi2jOK30rTgDYD5gNWE"
 CHAT_ID = "7905772261"
@@ -81,7 +81,7 @@ class NotificationService:
                     # State has changed!
                     occupancy_text = "Checking Occupancy..."
                     if new_status == "active":
-                        occupancy_text = "Occupied (Class Active)"
+                        occupancy_text = "Occupied"
                     else:
                         occupancy_text = "No Occupancy (Empty)"
 
@@ -177,13 +177,24 @@ class NotificationService:
             print(f"REST Status Check Error: {e}")
             self.send_telegram_alert("⚠️ Failed to contact Smart Controller. Is it running?")
 
+    def periodic_report_loop(self):
+        print("Periodic Reporter Started (10s interval)...")
+        while True:
+            time.sleep(10)
+            print("[Periodic] Sending 10s Status Report...")
+            self.send_status_report()
+
     def run(self):
         print("Starting Notification Service...")
         
         # Start Telegram Poller in background
         import threading
-        t = threading.Thread(target=self.check_telegram_commands, daemon=True)
-        t.start()
+        t_poll = threading.Thread(target=self.check_telegram_commands, daemon=True)
+        t_poll.start()
+
+        # Start Periodic Reporter in background
+        t_period = threading.Thread(target=self.periodic_report_loop, daemon=True)
+        t_period.start()
         
         self.client.connect(BROKER, PORT, 60)
         self.client.loop_forever()

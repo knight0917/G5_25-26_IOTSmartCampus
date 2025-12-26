@@ -9,7 +9,7 @@ import threading # Used to simulate multiple rooms concurrently
 # Configuration
 BROKER = "localhost"
 PORT = 1883
-CATALOG_URL = "http://localhost:8000"
+CATALOG_URL = "http://localhost:8080"
 DATA_FILE = "dummy_sensor_data.csv"
 
 def get_rooms():

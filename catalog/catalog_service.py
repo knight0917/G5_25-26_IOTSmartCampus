@@ -1,81 +1,91 @@
-from fastapi import FastAPI, HTTPException # Used to create the web API and raise HTTP errors
-from pydantic import BaseModel # Used for data validation and schema definitions
-from typing import List # Used for type hinting lists in function signatures
+import cherrypy
+import json # Used for loading and dumping JSON data
+import os # Used for robust file path handling
 
-app = FastAPI(title="Smart Campus Catalog")
+class CatalogService:
+    exposed = True
 
-# --- Data Models ---
+    def __init__(self, settings_file):
+        # Resolve path relative to this script to be safe
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        self.settings_file = os.path.join(base_dir, settings_file)
+        
+        self.catalog_data = {}
+        # Load settings initially
+        self.load_catalog()
 
-class Thresholds(BaseModel):
-    co2_warning: int = 1000
-    co2_critical: int = 1500
+    def load_catalog(self):
+        try:
+            with open(self.settings_file) as f:
+                self.catalog_data = json.load(f)
+            print(f"✅ Catalog System Loaded from {self.settings_file}")
+        except Exception as e:
+            print(f"❌ Error loading catalog from {self.settings_file}: {e}")
+            self.catalog_data = {}
 
-class ScheduleItem(BaseModel):
-    day: str  # e.g., "Monday"
-    start_time: str # "HH:MM", 24h format
-    end_time: str   # "HH:MM"
+    @cherrypy.tools.json_out()
+    def GET(self, *uri, **params):
+        # Handle GET requests for different endpoints
+        if len(uri) == 0:
+             return "IoT Catalog Service is Running..."
+        
+        cmd = uri[0]
+        
+        if cmd == "broker":
+            return self.catalog_data.get("broker")
+        elif cmd == "all":
+            return self.catalog_data
+        elif cmd == "rooms":
+            # If requesting specific room: /rooms/room_id
+            if len(uri) > 1:
+                target_id = uri[1]
+                
+                # Check if requesting a sub-resource like /rooms/room_id/schedule
+                sub_cmd = uri[2] if len(uri) > 2 else None
 
-class Room(BaseModel):
-    room_id: str
-    name: str
-    mqtt_sensor_topic: str
-    mqtt_actuator_topic: str
-    thingspeak_channel_id: str
-    thingspeak_write_key: str
-    thresholds: Thresholds
-    schedule: List[ScheduleItem]
+                rooms = self.catalog_data.get("rooms", [])
+                found_room = None
+                for room in rooms:
+                    if room.get("room_id") == target_id:
+                        found_room = room
+                        break
+                
+                if not found_room:
+                    cherrypy.response.status = 404
+                    return {"error": "Room not found"}
+                
+                if sub_cmd == "schedule":
+                    return found_room.get("schedule", [])
+                elif sub_cmd == "thresholds":
+                    return found_room.get("thresholds", {})
+                
+                return found_room
 
-# --- In-Memory Database ---
+            # If requesting all rooms: /rooms
+            return self.catalog_data.get("rooms", [])
 
-import json # Used to load configuration from JSON file
-import os # Used for file path operations
+        # Default fallback
+        return {"error": "Invalid endpoint"}
 
-# --- In-Memory Database (Loaded from file) ---
-rooms_db = []
 
-def load_catalog():
-    global rooms_db
-    try:
-        json_path = os.path.join(os.path.dirname(__file__), "catalog.json")
-        with open(json_path, "r") as f:
-            data = json.load(f)
-            # Parse raw JSON into Pydantic models
-            rooms_db = [Room(**item) for item in data.get("rooms", [])]
-        print(f"Loaded {len(rooms_db)} rooms from catalog.json")
-    except Exception as e:
-        print(f"Error loading catalog: {e}")
-        rooms_db = []
+if __name__ == '__main__':
+    # Configuration for CherryPy
+    conf = {
+        '/': {
+            'request.dispatch': cherrypy.dispatch.MethodDispatcher(),
+            'tools.sessions.on': True,
+        }
+    }
+    
+    # Mount the application
+    cherrypy.tree.mount(CatalogService('catalog.json'), '/', conf)
 
-# Load on module start
-load_catalog()
+    # Configure the server
+    cherrypy.config.update({
+        'server.socket_host': '0.0.0.0', # Listen on all interfaces
+        'server.socket_port': 8080
+    })
 
-# --- Endpoints ---
-
-@app.get("/")
-def read_root():
-    return {"status": "Catalog Service Online", "version": "1.0"}
-
-@app.get("/rooms", response_model=List[Room])
-def get_rooms():
-    return rooms_db
-
-@app.get("/rooms/{room_id}", response_model=Room)
-def get_room(room_id: str):
-    for room in rooms_db:
-        if room.room_id == room_id:
-            return room
-    raise HTTPException(status_code=404, detail="Room not found")
-
-@app.get("/rooms/{room_id}/schedule", response_model=List[ScheduleItem])
-def get_room_schedule(room_id: str):
-    for room in rooms_db:
-        if room.room_id == room_id:
-            return room.schedule
-    raise HTTPException(status_code=404, detail="Room not found")
-
-@app.get("/rooms/{room_id}/thresholds", response_model=Thresholds)
-def get_room_thresholds(room_id: str):
-    for room in rooms_db:
-        if room.room_id == room_id:
-            return room.thresholds
-    raise HTTPException(status_code=404, detail="Room not found")
+    # Start the engine
+    cherrypy.engine.start()
+    cherrypy.engine.block()

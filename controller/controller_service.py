@@ -1,19 +1,15 @@
-import paho.mqtt.client as mqtt # Used for MQTT communication (pub/sub)
-import json # Used for parsing and creating JSON payloads
-import requests # Used for making HTTP requests to other services (Catalog, ThingSpeak)
-import time # Used for timing and delays
-from datetime import datetime # Used for handling timestamp and current time
-
-from fastapi import FastAPI # Used to create the REST API for status checks
-import threading # Used to run the MQTT loop in a background thread
-import uvicorn # Used as the ASGI server to run the FastAPI app
+import cherrypy
+import paho.mqtt.client as mqtt
+import json
+import requests
+import time
+from datetime import datetime
+import threading
 
 # Configuration
 BROKER = "localhost"
 PORT = 1883
-CATALOG_URL = "http://localhost:8000"
-
-app = FastAPI(title="Smart Campus Controller")
+CATALOG_URL = "http://localhost:8080"
 
 class SmartController:
     def __init__(self):
@@ -148,7 +144,6 @@ class SmartController:
                     "heat_s": 1 if heating == "ON" else 0
                 }
                 # Run in thread to not block MQTT loop
-                import threading
                 threading.Thread(target=self.send_to_thingspeak, args=(room_id, ts_key, ts_data)).start()
 
         except Exception as e:
@@ -162,16 +157,33 @@ class SmartController:
 # --- Global Controller Instance ---
 controller = SmartController()
 
-@app.on_event("startup")
-def start_mqtt_loop():
+class ControllerService:
+    exposed = True
+
+    @cherrypy.tools.json_out()
+    def GET(self, *uri, **params):
+        if len(uri) > 0 and uri[0] == "status":
+            return controller.system_state
+        
+        return "Smart Campus Controller (CherryPy) is Running..."
+
+if __name__ == "__main__":
     # Start MQTT loop in background thread
     t = threading.Thread(target=controller.run, daemon=True)
     t.start()
 
-@app.get("/status")
-def get_status():
-    """Returns the current state of all rooms"""
-    return controller.system_state
+    conf = {
+        '/': {
+            'request.dispatch': cherrypy.dispatch.MethodDispatcher(),
+            'tools.sessions.on': True,
+        }
+    }
+    cherrypy.tree.mount(ControllerService(), '/', conf)
 
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8001)
+    cherrypy.config.update({
+        'server.socket_host': '0.0.0.0',
+        'server.socket_port': 8001
+    })
+
+    cherrypy.engine.start()
+    cherrypy.engine.block()
