@@ -1,4 +1,6 @@
 {
+  "broker": "localhost",
+  "port": 1883,
   "rooms": [
     {
       "room_id": "room_101",

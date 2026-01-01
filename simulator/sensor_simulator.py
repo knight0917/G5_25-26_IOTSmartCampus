@@ -7,8 +7,7 @@ import sys # Used for system exit on error
 import threading # Used to simulate multiple rooms concurrently
 
 # Configuration
-BROKER = "localhost"
-PORT = 1883
+# Configuration
 CATALOG_URL = "http://localhost:8080"
 DATA_FILE = "dummy_sensor_data.csv"
 
@@ -20,6 +19,16 @@ def get_rooms():
         print("Catalog not reachable")
         return []
 
+def get_broker_config():
+    try:
+        res_b = requests.get(f"{CATALOG_URL}/broker")
+        broker = res_b.json() if res_b.status_code == 200 else "localhost"
+        res_p = requests.get(f"{CATALOG_URL}/port")
+        port = int(res_p.json()) if res_p.status_code == 200 else 1883
+        return broker, port
+    except:
+        return "localhost", 1883
+
 class RoomSimulator(threading.Thread):
     def __init__(self, room_config, data):
         super().__init__()
@@ -30,7 +39,8 @@ class RoomSimulator(threading.Thread):
         
     def run(self):
         try:
-            self.client.connect(BROKER, PORT, 60)
+            broker, port = get_broker_config()
+            self.client.connect(broker, port, 60)
             self.client.loop_start()
             
             print(f"[{self.room_id}] Starting simulation...")

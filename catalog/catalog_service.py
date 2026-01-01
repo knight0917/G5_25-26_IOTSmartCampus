@@ -32,7 +32,9 @@ class CatalogService:
         cmd = uri[0]
         
         if cmd == "broker":
-            return self.catalog_data.get("broker")
+            return self.catalog_data.get("broker", "localhost")
+        elif cmd == "port":
+            return self.catalog_data.get("port", 1883)
         elif cmd == "all":
             return self.catalog_data
         elif cmd == "rooms":
@@ -65,7 +67,7 @@ class CatalogService:
             return self.catalog_data.get("rooms", [])
 
         # Default fallback
-        return {"error": "Invalid endpoint"}
+        return {"error": f"Invalid endpoint: {cmd}"}
 
 
 if __name__ == '__main__':

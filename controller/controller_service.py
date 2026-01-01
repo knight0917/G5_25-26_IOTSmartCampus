@@ -4,11 +4,10 @@ import json
 import requests
 import time
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
 import threading
 
 # Configuration
-BROKER = "localhost"
-PORT = 1883
 CATALOG_URL = "http://localhost:8080"
 
 class SmartController:
@@ -20,6 +19,7 @@ class SmartController:
         # self.last_alert_time = {} # Removed: notification logic moved
         self.last_thingspeak_time = {} # Rate limiting: room_id -> timestamp
         self.system_state = {} # room_id -> {metrics}
+        self.executor = ThreadPoolExecutor(max_workers=5)
 
     def save_state(self):
         try:
@@ -36,6 +36,16 @@ class SmartController:
         except Exception as e:
             print(f"Error fetching config for {room_id}: {e}")
             return None
+
+    def get_broker_config(self):
+        try:
+            res_b = requests.get(f"{CATALOG_URL}/broker")
+            broker = res_b.json() if res_b.status_code == 200 else "localhost"
+            res_p = requests.get(f"{CATALOG_URL}/port")
+            port = int(res_p.json()) if res_p.status_code == 200 else 1883
+            return broker, port
+        except:
+            return "localhost", 1883
 
     def send_to_thingspeak(self, room_id, write_key, data):
         # Rate Limit: ThingSpeak free tier allows update every 15 seconds
@@ -144,14 +154,17 @@ class SmartController:
                     "heat_s": 1 if heating == "ON" else 0
                 }
                 # Run in thread to not block MQTT loop
-                threading.Thread(target=self.send_to_thingspeak, args=(room_id, ts_key, ts_data)).start()
+                # Use ThreadPool to prevent thread explosion
+                self.executor.submit(self.send_to_thingspeak, room_id, ts_key, ts_data)
 
         except Exception as e:
             print(f"Error processing message: {e}")
 
     def run(self):
         print("Smart Controller Running...")
-        self.client.connect(BROKER, PORT, 60)
+        broker, port = self.get_broker_config()
+        print(f"🔌 Connecting to Broker: {broker}:{port}")
+        self.client.connect(broker, port, 60)
         self.client.loop_forever()
 
 # --- Global Controller Instance ---

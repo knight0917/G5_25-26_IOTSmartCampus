@@ -7,9 +7,9 @@ from datetime import datetime # Used for timestamp handling
 import os
 
 # Configuration
-BROKER = "localhost"
-PORT = 1883
+# Configuration
 CATALOG_URL = "http://localhost:8080"
+# Broker will be fetched from Catalog
 
 # Load Secrets --already loaded in secret.json
 TELEGRAM_BOT_TOKEN = ""
@@ -50,6 +50,21 @@ class NotificationService:
         except Exception as e:
             print(f"Error fetching config for {room_id}: {e}")
         return None
+
+    def get_broker_config(self):
+        try:
+            # Fetch Broker
+            res_b = requests.get(f"{CATALOG_URL}/broker")
+            broker = res_b.json() if res_b.status_code == 200 else "localhost"
+            
+            # Fetch Port
+            res_p = requests.get(f"{CATALOG_URL}/port")
+            port = int(res_p.json()) if res_p.status_code == 200 else 1883
+            
+            return broker, port
+        except Exception as e:
+            print(f"⚠️ Could not fetch broker config from Catalog: {e}")
+            return "localhost", 1883
 
     def send_telegram_alert(self, message):
         if TELEGRAM_BOT_TOKEN == "YOUR_BOT_TOKEN":
@@ -148,7 +163,7 @@ class NotificationService:
         offset = 0
         while True:
             try:
-                url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates?offset={offset}&timeout=10"
+                url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates?offset={offset}&timeout=30"
                 res = requests.get(url, timeout=15)
                 updates = res.json().get("result", [])
                 
@@ -199,12 +214,7 @@ class NotificationService:
             print(f"REST Status Check Error: {e}")
             self.send_telegram_alert("⚠️ Failed to contact Smart Controller. Is it running?")
 
-    def periodic_report_loop(self):
-        print("Periodic Reporter Started (10s interval)...")
-        while True:
-            time.sleep(10)
-            print("[Periodic] Sending 10s Status Report...")
-            self.send_status_report()
+
 
     def run(self):
         print("Starting Notification Service...")
@@ -214,11 +224,11 @@ class NotificationService:
         t_poll = threading.Thread(target=self.check_telegram_commands, daemon=True)
         t_poll.start()
 
-        # Start Periodic Reporter in background
-        t_period = threading.Thread(target=self.periodic_report_loop, daemon=True)
-        t_period.start()
+        # Fetch dynamic broker config
+        broker, port = self.get_broker_config()
+        print(f"🔌 Connecting to Broker: {broker}:{port}")
         
-        self.client.connect(BROKER, PORT, 60)
+        self.client.connect(broker, port, 60)
         self.client.loop_forever()
 
 if __name__ == "__main__":
