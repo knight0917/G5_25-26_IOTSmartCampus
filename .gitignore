@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IDE settings
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Project specific (Sensitive / Generated)
+notification/secrets.json
+system_state.json
+dummy_sensor_data.csv
+*.csv
+*.log
+*.sqlite3
+
+# OS generated files
+.DS_Store
+Thumbs.db
